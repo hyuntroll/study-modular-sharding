@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: demo
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: false
+        default_batch_fetch_size: 100
+
+hibernate:
+  dialect: org.hibernate.dialect.PostgreSQLDialect
+
+datasource:
+  history:
+    shards:
+      - username: history_shard_1
+        password: demo1234
+        master:
+          name: master-history-1
+          url: jdbc:postgresql://localhost:5432/demo_shard_1
+      - username: history_shard_1
+        password: demo1234
+        master:
+          name: master-history-2
+          url: jdbc:postgresql://localhost:5432/demo_shard_2
+
+sharding:
+  history:
+    strategy: MODULAR
+    mod: 2
