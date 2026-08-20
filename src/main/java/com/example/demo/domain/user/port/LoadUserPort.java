@@ -1,0 +1,7 @@
+package com.example.demo.domain.user.port;
+
+import com.example.demo.domain.user.domain.UserEntity;
+
+public interface LoadUserPort {
+    UserEntity loadUserById(Long userId);
+}
