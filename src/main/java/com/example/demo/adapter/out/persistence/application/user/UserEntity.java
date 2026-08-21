@@ -1,4 +1,4 @@
-package com.example.demo.domain.user.domain;
+package com.example.demo.adapter.out.persistence.application.user;
 
 import jakarta.persistence.*;
 import lombok.Getter;

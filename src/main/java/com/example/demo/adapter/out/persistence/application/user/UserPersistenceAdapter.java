@@ -1,10 +1,7 @@
-package com.example.demo.domain.user.adapter;
+package com.example.demo.adapter.out.persistence.application.user;
 
-import com.example.demo.domain.user.domain.UserEntity;
-import com.example.demo.domain.user.port.LoadUserPort;
-import com.example.demo.domain.user.port.SaveUserPort;
-import com.example.demo.global.datasource.aop.Sharding;
-import com.example.demo.global.datasource.enums.ShardingTarget;
+import com.example.demo.application.port.out.user.LoadUserPort;
+import com.example.demo.application.port.out.user.SaveUserPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

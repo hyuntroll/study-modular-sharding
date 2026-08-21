@@ -1,6 +1,5 @@
-package com.example.demo.domain.history.adapter;
+package com.example.demo.adapter.out.persistence.history;
 
-import com.example.demo.domain.history.domain.HistoryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

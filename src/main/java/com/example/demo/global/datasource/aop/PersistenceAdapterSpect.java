@@ -17,7 +17,7 @@ public class PersistenceAdapterSpect {
 
     @Pointcut("execution(" +
             "public * " + // public 메서드, 반환 타입 상관 없음
-            "com.example.demo.domain.*.adapter..*.*(..))" + // ..* 패키지 하위에 * 모든 메서드(..) 모든 파라미터
+            "com.example.demo.adapter.out.persistence..*.*(..))" + // ..* 패키지 하위에 * 모든 메서드(..) 모든 파라미터
             "")
     private void persistenceAdapter() {}
 

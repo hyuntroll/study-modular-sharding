@@ -1,6 +1,5 @@
-package com.example.demo.domain.user.adapter;
+package com.example.demo.adapter.out.persistence.application.user;
 
-import com.example.demo.domain.user.domain.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

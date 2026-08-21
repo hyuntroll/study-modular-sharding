@@ -1,6 +1,5 @@
-package com.example.demo.domain.history.domain;
+package com.example.demo.adapter.out.persistence.history;
 
-import com.example.demo.domain.user.domain.UserEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

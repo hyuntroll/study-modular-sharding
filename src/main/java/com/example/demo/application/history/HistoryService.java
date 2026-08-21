@@ -1,10 +1,10 @@
-package com.example.demo.domain.history.server;
+package com.example.demo.application.history;
 
-import com.example.demo.domain.history.domain.HistoryEntity;
-import com.example.demo.domain.history.port.LoadHistoryPort;
-import com.example.demo.domain.history.port.SaveHistoryPort;
-import com.example.demo.domain.user.domain.UserEntity;
-import com.example.demo.domain.user.port.LoadUserPort;
+import com.example.demo.adapter.out.persistence.history.HistoryEntity;
+import com.example.demo.application.port.out.history.LoadHistoryPort;
+import com.example.demo.application.port.out.history.SaveHistoryPort;
+import com.example.demo.adapter.out.persistence.application.user.UserEntity;
+import com.example.demo.application.port.out.user.LoadUserPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

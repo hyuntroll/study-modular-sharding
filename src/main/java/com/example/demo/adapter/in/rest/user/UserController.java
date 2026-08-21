@@ -1,7 +1,7 @@
-package com.example.demo.domain.user.controller;
+package com.example.demo.adapter.in.rest.user;
 
 
-import com.example.demo.domain.user.service.UserService;
+import com.example.demo.application.user.UserService;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

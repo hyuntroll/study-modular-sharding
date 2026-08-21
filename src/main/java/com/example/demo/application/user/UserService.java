@@ -1,8 +1,8 @@
-package com.example.demo.domain.user.service;
+package com.example.demo.application.user;
 
-import com.example.demo.domain.user.domain.UserEntity;
-import com.example.demo.domain.user.port.LoadUserPort;
-import com.example.demo.domain.user.port.SaveUserPort;
+import com.example.demo.adapter.out.persistence.application.user.UserEntity;
+import com.example.demo.application.port.out.user.LoadUserPort;
+import com.example.demo.application.port.out.user.SaveUserPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

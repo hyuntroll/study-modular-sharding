@@ -1,12 +1,11 @@
-package com.example.demo.domain.history.controller;
+package com.example.demo.adapter.in.rest.history;
 
-import com.example.demo.domain.history.domain.HistoryEntity;
-import com.example.demo.domain.history.server.HistoryService;
+import com.example.demo.adapter.out.persistence.history.HistoryEntity;
+import com.example.demo.application.history.HistoryService;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 

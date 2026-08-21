@@ -17,6 +17,11 @@ hibernate:
   dialect: org.hibernate.dialect.PostgreSQLDialect
 
 datasource:
+  application:
+    username: history_shard_1
+    password: demo1234
+    url: jdbc:postgresql://localhost:5432/demo_application
+
   history:
     shards:
       - username: history_shard_1

@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.example.demo.global.datasource.config.HistoryConfig.SHARD_DELIMITER;
+import static com.example.demo.global.datasource.config.DataSourceConfig.SHARD_DELIMITER;
 
 @Slf4j
 public class DataSourceRouter extends AbstractRoutingDataSource {
@@ -35,7 +35,7 @@ public class DataSourceRouter extends AbstractRoutingDataSource {
         int shardNo = getShardNo(
                 UserContextHolder.getSharding()
         );
-
+        log.info(shards.get(shardNo));
         return shards.get(shardNo);
     }
 
