@@ -1,9 +1,7 @@
-package com.example.demo.global.datasource.config;
+package com.example.demo.global.datasource.application.config;
 
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 @Setter
 @Getter

@@ -1,6 +1,6 @@
 package com.example.demo.global.datasource.aop;
 
-import com.example.demo.global.datasource.holder.UserContextHolder;
+import com.example.demo.global.datasource.shard.holder.UserContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;

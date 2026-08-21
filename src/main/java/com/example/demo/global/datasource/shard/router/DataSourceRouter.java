@@ -1,8 +1,8 @@
-package com.example.demo.global.datasource.router;
+package com.example.demo.global.datasource.shard.router;
 
-import com.example.demo.global.datasource.config.ShardingConfig;
-import com.example.demo.global.datasource.config.ShardingProperty;
-import com.example.demo.global.datasource.holder.UserContextHolder;
+import com.example.demo.global.datasource.shard.config.ShardingConfig;
+import com.example.demo.global.datasource.shard.config.ShardingProperty;
+import com.example.demo.global.datasource.shard.holder.UserContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 

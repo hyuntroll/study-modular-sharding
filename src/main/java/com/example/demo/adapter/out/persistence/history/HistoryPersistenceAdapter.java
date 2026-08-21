@@ -3,7 +3,7 @@ package com.example.demo.adapter.out.persistence.history;
 import com.example.demo.application.port.out.history.LoadHistoryPort;
 import com.example.demo.application.port.out.history.SaveHistoryPort;
 import com.example.demo.global.datasource.aop.Sharding;
-import com.example.demo.global.datasource.enums.ShardingTarget;
+import com.example.demo.global.datasource.shard.enums.ShardingTarget;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

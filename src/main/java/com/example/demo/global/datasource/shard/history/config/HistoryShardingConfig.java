@@ -1,6 +1,8 @@
-package com.example.demo.global.datasource.config;
+package com.example.demo.global.datasource.shard.history.config;
 
-import com.example.demo.global.datasource.enums.ShardingTarget;
+import com.example.demo.global.datasource.shard.config.ShardingConfig;
+import com.example.demo.global.datasource.shard.config.ShardingProperty;
+import com.example.demo.global.datasource.shard.enums.ShardingTarget;
 import jakarta.annotation.PostConstruct;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;

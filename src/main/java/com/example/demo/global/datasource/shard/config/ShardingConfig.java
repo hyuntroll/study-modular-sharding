@@ -1,6 +1,6 @@
-package com.example.demo.global.datasource.config;
+package com.example.demo.global.datasource.shard.config;
 
-import com.example.demo.global.datasource.enums.ShardingTarget;
+import com.example.demo.global.datasource.shard.enums.ShardingTarget;
 import lombok.Setter;
 
 import java.util.Map;

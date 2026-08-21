@@ -1,7 +1,7 @@
-package com.example.demo.global.datasource.holder;
+package com.example.demo.global.datasource.shard.holder;
 
 
-import com.example.demo.global.datasource.enums.ShardingTarget;
+import com.example.demo.global.datasource.shard.enums.ShardingTarget;
 import lombok.Getter;
 import lombok.Setter;
 

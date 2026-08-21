@@ -1,11 +1,11 @@
-package com.example.demo.global.datasource.config;
-
+package com.example.demo.global.datasource.application.config;
 
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -16,30 +16,32 @@ import javax.sql.DataSource;
 @Configuration
 @EnableJpaRepositories(
         basePackages = {
-                "com.example.demo.adapter.out.persistence.history"
+                "com.example.demo.adapter.out.persistence.application"
         },
-        entityManagerFactoryRef = "historyEntityManagerFactory",
-        transactionManagerRef = "historyTransactionManager"
+        entityManagerFactoryRef = "applicationEntityManagerFactory",
+        transactionManagerRef = "applicationTransactionManager"
 )
-public class HistoryJpaConfig {
+public class ApplicationJpaConfig {
 
+    @Primary
     @Bean
-    public LocalContainerEntityManagerFactoryBean historyEntityManagerFactory(
+    public LocalContainerEntityManagerFactoryBean applicationEntityManagerFactory(
             EntityManagerFactoryBuilder builder,
-            @Qualifier("historyDataSource") DataSource dataSource
+            @Qualifier("applicationDataSource") DataSource dataSource
     ) {
         return builder
                 .dataSource(dataSource)
                 .packages(
-                        "com.example.demo.adapter.out.persistence.history"
+                        "com.example.demo.adapter.out.persistence.application"
                 )
-                .persistenceUnit("history")
+                .persistenceUnit("application")
                 .build();
     }
 
+    @Primary
     @Bean
-    public PlatformTransactionManager historyTransactionManager(
-            @Qualifier("historyEntityManagerFactory")
+    public PlatformTransactionManager applicationTransactionManager(
+            @Qualifier("applicationEntityManagerFactory")
             EntityManagerFactory entityManagerFactory
     ) {
         return new JpaTransactionManager(entityManagerFactory);

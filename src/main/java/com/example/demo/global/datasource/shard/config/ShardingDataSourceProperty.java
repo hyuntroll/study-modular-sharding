@@ -1,4 +1,4 @@
-package com.example.demo.global.datasource.config;
+package com.example.demo.global.datasource.shard.config;
 
 import lombok.Getter;
 import lombok.Setter;

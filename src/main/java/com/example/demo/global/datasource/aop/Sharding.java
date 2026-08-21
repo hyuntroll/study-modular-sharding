@@ -1,6 +1,6 @@
 package com.example.demo.global.datasource.aop;
 
-import com.example.demo.global.datasource.enums.ShardingTarget;
+import com.example.demo.global.datasource.shard.enums.ShardingTarget;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

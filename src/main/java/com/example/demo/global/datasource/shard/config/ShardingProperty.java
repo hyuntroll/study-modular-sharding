@@ -1,6 +1,6 @@
-package com.example.demo.global.datasource.config;
+package com.example.demo.global.datasource.shard.config;
 
-import com.example.demo.global.datasource.enums.ShardingStrategy;
+import com.example.demo.global.datasource.shard.enums.ShardingStrategy;
 import lombok.Getter;
 import lombok.Setter;
 
