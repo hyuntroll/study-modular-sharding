@@ -5,30 +5,37 @@ import com.example.demo.global.datasource.shard.enums.ShardingTarget;
 import lombok.Getter;
 import lombok.Setter;
 
-public class UserContextHolder {
+import java.util.ArrayDeque;
+import java.util.Deque;
 
-    private static final ThreadLocal<Context> USER_CONTEXT =
-            ThreadLocal.withInitial(Context::new);
+public final class UserContextHolder {
 
-    public static void setSharding(ShardingTarget target, long shardKey) {
-        getUserContext().setSharding(new Sharding(target, shardKey));
+    private static final ThreadLocal<Deque<Sharding>> USER_CONTEXT =
+            ThreadLocal.withInitial(ArrayDeque::new);
+
+    private UserContextHolder() {
     }
 
-    public static void clearSharding() {
-        getUserContext().setSharding(null);
+    public static void push(ShardingTarget target, long shardKey) {
+        getUserContext().push(new Sharding(target, shardKey));
     }
+
+    public static void pop() {
+        Deque<Sharding> context = getUserContext();
+        if (!context.isEmpty()) {
+            context.pop();
+        }
+    }
+
 
     public static Sharding getSharding() {
-        Context context = getUserContext();
-
-        if (context == null) {
-            return null;
-        }
-
-        return context.getSharding();
+        Deque<Sharding> stack = getUserContext();
+        return stack.isEmpty()
+                ? null
+                : stack.peek();
     }
 
-    public static Context getUserContext() {
+    public static Deque<Sharding> getUserContext() {
         return USER_CONTEXT.get();
     }
 

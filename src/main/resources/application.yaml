@@ -36,6 +36,7 @@ datasource:
           url: jdbc:postgresql://localhost:5432/demo_shard_2
 
 sharding:
+  mode: template # or aop
   history:
     strategy: MODULAR
     mod: 2

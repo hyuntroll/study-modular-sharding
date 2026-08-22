@@ -1,5 +1,6 @@
 package com.example.demo.global.datasource.aop;
 
+import com.example.demo.global.datasource.shard.config.ShardingScope;
 import com.example.demo.global.datasource.shard.holder.UserContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,11 +8,17 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 @Aspect
+@ConditionalOnProperty(
+        prefix = "sharding",
+        name = "mode",
+        havingValue = "aop"
+)
 @RequiredArgsConstructor
 public class PersistenceAdapterSpect {
 
@@ -29,11 +36,8 @@ public class PersistenceAdapterSpect {
     ) throws Throwable {
         log.info(String.valueOf(shardKey));
 
-        UserContextHolder.setSharding(sharding.target(), shardKey);
-        try {
+        try (var ignored = ShardingScope.open(sharding.target(), shardKey)) {
             return joinPoint.proceed();
-        } finally {
-            UserContextHolder.clearSharding();
         }
     }
 }
