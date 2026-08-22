@@ -23,7 +23,8 @@ import javax.sql.DataSource;
 )
 public class HistoryJpaConfig {
 
-    @Bean
+    @Bean(defaultCandidate = false)
+    @Qualifier("historyEntityManagerFactory")
     public LocalContainerEntityManagerFactoryBean historyEntityManagerFactory(
             EntityManagerFactoryBuilder builder,
             @Qualifier("historyDataSource") DataSource dataSource
@@ -37,7 +38,8 @@ public class HistoryJpaConfig {
                 .build();
     }
 
-    @Bean
+    @Bean(defaultCandidate = false)
+    @Qualifier("historyTransactionManager")
     public PlatformTransactionManager historyTransactionManager(
             @Qualifier("historyEntityManagerFactory")
             EntityManagerFactory entityManagerFactory
