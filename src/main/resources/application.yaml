@@ -13,15 +13,15 @@ spring:
         format_sql: false
         default_batch_fetch_size: 100
 
+  datasource:
+    url: jdbc:postgresql://localhost:5432/demo_application
+    username: history_shard_1
+    password: demo1234
+
 hibernate:
   dialect: org.hibernate.dialect.PostgreSQLDialect
 
 datasource:
-  application:
-    username: history_shard_1
-    password: demo1234
-    url: jdbc:postgresql://localhost:5432/demo_application
-
   history:
     shards:
       - username: history_shard_1

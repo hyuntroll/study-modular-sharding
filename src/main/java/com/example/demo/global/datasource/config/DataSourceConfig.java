@@ -1,16 +1,15 @@
 package com.example.demo.global.datasource.config;
 
-import com.example.demo.global.datasource.application.config.DataSourceProperty;
 import com.example.demo.global.datasource.shard.config.ShardingDataSourceProperty;
 import com.example.demo.global.datasource.shard.router.DataSourceRouter;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy;
 
 import javax.sql.DataSource;
@@ -28,21 +27,8 @@ public class DataSourceConfig {
 
     private ShardingDataSourceProperty history;
 
-    private DataSourceProperty application;
-
-    @Primary
-    @Bean
-    public DataSource applicationDataSource() {
-        HikariDataSource dataSource = new HikariDataSource();
-
-        dataSource.setUsername(application.getUsername());
-        dataSource.setPassword(application.getPassword());
-        dataSource.setJdbcUrl(application.getUrl());
-
-        return dataSource;
-    }
-
-    @Bean
+    @Bean(defaultCandidate = false)
+    @Qualifier("historyDataSource")
     public DataSource historyDataSource() {
         DataSourceRouter router = new DataSourceRouter();
         Map<Object, Object> dataSourceMap = new LinkedHashMap<>();
