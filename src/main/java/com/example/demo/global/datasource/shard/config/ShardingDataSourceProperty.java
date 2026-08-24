@@ -10,6 +10,10 @@ import java.util.List;
 public class ShardingDataSourceProperty {
     private List<Shard> shards;
 
+    private Mode mode = Mode.SINGLE;
+
+    private DataSourceProperty single;
+
     @Getter
     @Setter
     public static class Shard {
@@ -23,5 +27,10 @@ public class ShardingDataSourceProperty {
     public static class Property {
         private String name;
         private String url;
+    }
+
+    public enum Mode {
+        SINGLE,
+        SHARDED
     }
 }

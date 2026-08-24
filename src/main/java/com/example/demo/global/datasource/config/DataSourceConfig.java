@@ -30,6 +30,21 @@ public class DataSourceConfig {
     @Bean(defaultCandidate = false)
     @Qualifier("historyDataSource")
     public DataSource historyDataSource() {
+        return switch(history.getMode()) {
+            case SINGLE -> createSingleDataSource();
+            case SHARDED -> createShardingDataSource();
+        };
+    }
+
+    private DataSource createSingleDataSource() {
+        return dataSource(
+                history.getSingle().getUsername(),
+                history.getSingle().getPassword(),
+                history.getSingle().getUrl()
+        );
+    }
+
+    private DataSource createShardingDataSource() {
         DataSourceRouter router = new DataSourceRouter();
         Map<Object, Object> dataSourceMap = new LinkedHashMap<>();
 

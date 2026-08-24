@@ -23,6 +23,13 @@ hibernate:
 
 datasource:
   history:
+    mode: SINGLE # or SHARD
+
+    single:
+        username: history_shard_1
+        url: jdbc:postgresql://localhost:5432/demo_shard_1
+        password: demo1234
+
     shards:
       - username: history_shard_1
         password: demo1234
