@@ -1,8 +1,8 @@
 package com.example.demo.global.datasource.shard.router;
 
-import com.example.demo.global.datasource.shard.config.ShardingConfig;
 import com.example.demo.global.datasource.shard.config.ShardingProperty;
 import com.example.demo.global.datasource.shard.holder.UserContextHolder;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 
@@ -14,8 +14,10 @@ import java.util.Map;
 import static com.example.demo.global.datasource.config.DataSourceConfig.SHARD_DELIMITER;
 
 @Slf4j
+@RequiredArgsConstructor
 public class DataSourceRouter extends AbstractRoutingDataSource {
     private Map<Integer, String> shards;
+    private final ShardingProperty property;
 
     @Override
     public void setTargetDataSources(Map<Object, Object> targetDataSources) {
@@ -43,7 +45,6 @@ public class DataSourceRouter extends AbstractRoutingDataSource {
         if (sharding == null) {
             return 0;
         }
-        ShardingProperty property = ShardingConfig.getShardingPropertyMap().get(sharding.getTarget());
         return switch (property.getStrategy()) {
             case RANGE -> getShardNoByRange(property.getRules(), sharding.getShardKey());
             case MODULAR -> getShardNoByModular(property.getMod(), sharding.getShardKey());

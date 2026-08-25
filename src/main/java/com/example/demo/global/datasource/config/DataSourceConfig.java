@@ -1,6 +1,9 @@
 package com.example.demo.global.datasource.config;
 
+import com.example.demo.global.datasource.shard.config.ShardingConfig;
 import com.example.demo.global.datasource.shard.config.ShardingDataSourceProperty;
+import com.example.demo.global.datasource.shard.config.ShardingProperty;
+import com.example.demo.global.datasource.shard.enums.ShardingTarget;
 import com.example.demo.global.datasource.shard.router.DataSourceRouter;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
@@ -31,23 +34,26 @@ public class DataSourceConfig {
     @Qualifier("historyDataSource")
     public DataSource historyDataSource() {
         return switch(history.getMode()) {
-            case SINGLE -> createSingleDataSource();
-            case SHARDED -> createShardingDataSource(history);
+            case SINGLE -> createSingleDataSource(history);
+            case SHARDED -> createShardingDataSource(history, ShardingConfig.getShardingPropertyMap().get(ShardingTarget.HISTORY));
         };
     }
 
-    private DataSource createSingleDataSource() {
+    private DataSource createSingleDataSource(
+            ShardingDataSourceProperty property
+    ) {
         return dataSource(
-                history.getSingle().getUsername(),
-                history.getSingle().getPassword(),
-                history.getSingle().getUrl()
+                property.getSingle().getUsername(),
+                property.getSingle().getPassword(),
+                property.getSingle().getUrl()
         );
     }
 
     private DataSource createShardingDataSource(
-            ShardingDataSourceProperty property
+            ShardingDataSourceProperty property,
+            ShardingProperty shardingProperty
     ) {
-        DataSourceRouter router = new DataSourceRouter();
+        DataSourceRouter router = new DataSourceRouter(shardingProperty);
         Map<Object, Object> dataSourceMap = new LinkedHashMap<>();
 
         for (int i =0; i < property.getShards().size(); i++) {
