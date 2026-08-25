@@ -32,7 +32,7 @@ public class DataSourceConfig {
     public DataSource historyDataSource() {
         return switch(history.getMode()) {
             case SINGLE -> createSingleDataSource();
-            case SHARDED -> createShardingDataSource();
+            case SHARDED -> createShardingDataSource(history);
         };
     }
 
@@ -44,12 +44,14 @@ public class DataSourceConfig {
         );
     }
 
-    private DataSource createShardingDataSource() {
+    private DataSource createShardingDataSource(
+            ShardingDataSourceProperty property
+    ) {
         DataSourceRouter router = new DataSourceRouter();
         Map<Object, Object> dataSourceMap = new LinkedHashMap<>();
 
-        for (int i =0; i < history.getShards().size(); i++) {
-            ShardingDataSourceProperty.Shard shard  = history.getShards().get(i);
+        for (int i =0; i < property.getShards().size(); i++) {
+            ShardingDataSourceProperty.Shard shard  = property.getShards().get(i);
 
             DataSource masterDs = dataSource(
                     shard.getUsername(),
