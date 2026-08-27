@@ -11,7 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.example.demo.global.datasource.config.DataSourceConfig.SHARD_DELIMITER;
+import static com.example.demo.global.datasource.factory.DataSourceFactory.SHARD_DELIMITER;
+
 
 @Slf4j
 @RequiredArgsConstructor

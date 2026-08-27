@@ -14,6 +14,8 @@ public class ShardingDataSourceProperty {
 
     private DataSourceProperty single;
 
+    private ShardingProperty shard;
+
     @Getter
     @Setter
     public static class Shard {

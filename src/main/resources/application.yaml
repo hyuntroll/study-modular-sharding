@@ -25,6 +25,10 @@ datasource:
   history:
     mode: SINGLE # or SHARD
 
+    shard:
+      strategy: MODULAR
+      mod: 2
+
     single:
         username: history_shard_1
         url: jdbc:postgresql://localhost:5432/demo_shard_1
