@@ -2,6 +2,9 @@ spring:
   application:
     name: demo
 
+  profiles:
+    default: default
+
   jpa:
     open-in-view: false
     hibernate:
@@ -14,9 +17,15 @@ spring:
         default_batch_fetch_size: 100
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/demo_application
-    username: history_shard_1
-    password: demo1234
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/demo_application}
+    username: ${SPRING_DATASOURCE_USERNAME:history_shard_1}
+    password: ${SPRING_DATASOURCE_PASSWORD:demo1234}
+
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
 
 hibernate:
   dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -30,9 +39,9 @@ datasource:
       mod: 2
 
     single:
-        username: history_shard_1
-        url: jdbc:postgresql://localhost:5432/demo_shard_1
-        password: demo1234
+        username: ${HISTORY_DB_USERNAME:history_shard_1}
+        url: ${HISTORY_DB_URL:jdbc:postgresql://localhost:5432/demo_shard_1}
+        password: ${HISTORY_DB_PASSWORD:demo1234}
 
     shards:
       - username: history_shard_1
@@ -51,3 +60,11 @@ sharding:
   history:
     strategy: MODULAR
     mod: 2
+
+logging:
+  file:
+    path: ./logs
+
+  structured:
+    format:
+      file: logstash

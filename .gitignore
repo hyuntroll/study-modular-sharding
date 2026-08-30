@@ -35,3 +35,8 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Local observability runtime data ###
+logs/
+data/grafana/
+data/loki/data/
