@@ -1,0 +1,24 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+local.file_match "spring_logs" {
+    path_targets = [
+        {
+            "__path__" = "/var/log/modular-sharding/app.log",
+            "job"      = "modular-sharding",
+        },
+    ]
+}
+
+loki.source.file "spring_logs" {
+    targets    = local.file_match.spring_logs.targets
+    forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+    endpoint {
+        url = "http://loki:3100/loki/api/v1/push"
+    }
+}
