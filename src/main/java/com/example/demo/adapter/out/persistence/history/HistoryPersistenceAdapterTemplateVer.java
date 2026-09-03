@@ -31,7 +31,7 @@ implements
     @Override
     public HistoryEntity loadHistoryId(Long userId, Long historyId) {
         return execute(HISTORY, userId, () ->
-            historyRepository.findAllByUserIdAndId(historyId, userId)
+            historyRepository.findAllByUserIdAndId(userId, historyId)
                     .stream().findFirst().orElseThrow(() -> new RuntimeException("Histroy"))
         );
     }
