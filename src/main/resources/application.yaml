@@ -32,7 +32,7 @@ hibernate:
 
 datasource:
   history:
-    mode: SINGLE # or SHARD
+    mode: SINGLE # or SHARDED
 
     shard:
       strategy: MODULAR
@@ -57,9 +57,6 @@ datasource:
 
 sharding:
   mode: template # or aop
-  history:
-    strategy: MODULAR
-    mod: 2
 
 logging:
   file:
