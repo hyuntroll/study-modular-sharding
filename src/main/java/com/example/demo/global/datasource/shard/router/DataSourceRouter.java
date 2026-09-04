@@ -7,48 +7,29 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import static com.example.demo.global.datasource.factory.DataSourceFactory.SHARD_DELIMITER;
 
 
 @Slf4j
 @RequiredArgsConstructor
 public class DataSourceRouter extends AbstractRoutingDataSource {
-    private Map<Integer, String> shards;
     private final ShardingProperty property;
-
-    @Override
-    public void setTargetDataSources(Map<Object, Object> targetDataSources) {
-        super.setTargetDataSources(targetDataSources);
-
-        shards = new HashMap<>();
-
-        for(Object item: targetDataSources.keySet()) {
-            String dataSourceName = item.toString();
-            String shardNoStr = dataSourceName.split(SHARD_DELIMITER)[0];
-            shards.put(Integer.parseInt(shardNoStr), dataSourceName);
-        }
-    }
+    private final int shardCount;
 
     @Override
     protected Object determineCurrentLookupKey() {
-        int shardNo = getShardNo(
-                UserContextHolder.getSharding()
-        );
-        log.info(shards.get(shardNo));
-        return shards.get(shardNo);
+        int shardNo = getShardNo(UserContextHolder.getSharding());
+        log.atDebug().addKeyValue("shard_index", shardNo).log("Routing data source");
+        return shardNo;
     }
 
     private int getShardNo(UserContextHolder.Sharding sharding) {
         if (sharding == null) {
-            return 0;
+            throw new IllegalStateException("Sharding key is required");
         }
         return switch (property.getStrategy()) {
             case RANGE -> getShardNoByRange(property.getRules(), sharding.getShardKey());
-            case MODULAR -> getShardNoByModular(property.getMod(), sharding.getShardKey());
+            case MODULAR -> Math.floorMod(sharding.getShardKey(), shardCount);
         };
     }
 
@@ -59,10 +40,6 @@ public class DataSourceRouter extends AbstractRoutingDataSource {
             }
         }
 
-        return 0;
-    }
-
-    private int getShardNoByModular(int modulus, long shardKey) {
-        return (int) (shardKey % modulus);
+        throw new IllegalStateException("No shard range found for key: " + shardKey);
     }
 }

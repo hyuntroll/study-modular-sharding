@@ -8,7 +8,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         jdbc:
@@ -20,6 +20,9 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/demo_application}
     username: ${SPRING_DATASOURCE_USERNAME:history_shard_1}
     password: ${SPRING_DATASOURCE_PASSWORD:demo1234}
+
+  flyway:
+    locations: classpath:db/migration/application
 
 management:
   endpoints:
@@ -38,16 +41,13 @@ management:
       export:
         enabled: false
 
-hibernate:
-  dialect: org.hibernate.dialect.PostgreSQLDialect
-
 datasource:
   history:
-    mode: SINGLE # or SHARDED
+    mode: ${HISTORY_DB_MODE}
+    expected-mode: ${HISTORY_DB_EXPECTED_MODE}
 
     shard:
       strategy: MODULAR
-      mod: 2
 
     single:
         username: ${HISTORY_DB_USERNAME:history_shard_1}
@@ -55,16 +55,16 @@ datasource:
         password: ${HISTORY_DB_PASSWORD:demo1234}
 
     shards:
-      - username: history_shard_1
-        password: demo1234
+      - username: ${HISTORY_SHARD_0_USERNAME:history_shard_1}
+        password: ${HISTORY_SHARD_0_PASSWORD:demo1234}
         master:
           name: master-history-1
-          url: jdbc:postgresql://localhost:5432/demo_shard_1
-      - username: history_shard_1
-        password: demo1234
+          url: ${HISTORY_SHARD_0_URL:jdbc:postgresql://localhost:5432/demo_shard_1}
+      - username: ${HISTORY_SHARD_1_USERNAME:history_shard_1}
+        password: ${HISTORY_SHARD_1_PASSWORD:demo1234}
         master:
           name: master-history-2
-          url: jdbc:postgresql://localhost:5432/demo_shard_2
+          url: ${HISTORY_SHARD_1_URL:jdbc:postgresql://localhost:5432/demo_shard_2}
 
 sharding:
   mode: template # or aop

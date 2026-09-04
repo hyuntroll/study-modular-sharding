@@ -12,6 +12,7 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
+import java.util.Map;
 
 @Configuration
 @EnableJpaRepositories(
@@ -34,6 +35,12 @@ public class HistoryJpaConfig {
                 .packages(
                         "com.example.demo.adapter.out.persistence.history"
                 )
+                .properties(Map.of(
+                        "hibernate.hbm2ddl.auto", "none",
+                        "hibernate.boot.allow_jdbc_metadata_access", "false",
+                        "jakarta.persistence.database-product-name", "PostgreSQL",
+                        "jakarta.persistence.database-major-version", "16"
+                ))
                 .persistenceUnit("history")
                 .build();
     }

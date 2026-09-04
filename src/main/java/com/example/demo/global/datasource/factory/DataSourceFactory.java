@@ -5,6 +5,7 @@ import com.example.demo.global.datasource.shard.config.ShardingDataSourcePropert
 import com.example.demo.global.datasource.shard.router.DataSourceRouter;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
+import org.flywaydb.core.Flyway;
 import org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy;
 import org.springframework.stereotype.Component;
 
@@ -15,9 +16,15 @@ import java.util.Map;
 @Slf4j
 @Component
 public final class DataSourceFactory {
-    public static final String SHARD_DELIMITER = "_";
+    private static final String HISTORY_MIGRATION_LOCATION = "classpath:db/migration/history";
+    private static final String HISTORY_SCHEMA_HISTORY = "flyway_history_schema_history";
 
     public DataSource createDataSource(ShardingDataSourceProperty property) {
+        if (property == null) {
+            throw new IllegalArgumentException("datasource.history is required");
+        }
+        property.validate();
+
         return switch(property.getMode()) {
             case SINGLE -> createSingleDataSource(property.getSingle());
             case SHARDED -> createShardDataSource(property);
@@ -31,7 +38,7 @@ public final class DataSourceFactory {
                 .addKeyValue("database_mode", "single")
                 .log("Creating single data source");
 
-        return dataSource(
+        return migratedDataSource(
                 property.getUsername(),
                 property.getPassword(),
                 property.getUrl()
@@ -45,7 +52,10 @@ public final class DataSourceFactory {
                 .addKeyValue("database_mode", "sharded")
                 .log("Creating shard data source");
 
-        DataSourceRouter router = new DataSourceRouter(property.getShard());
+        DataSourceRouter router = new DataSourceRouter(
+                property.getShard(),
+                property.getShards().size()
+        );
         Map<Object, Object> dataSourceMap = new LinkedHashMap<>();
 
         for (int i =0; i < property.getShards().size(); i++) {
@@ -56,21 +66,22 @@ public final class DataSourceFactory {
 
             ShardingDataSourceProperty.Shard shard  = property.getShards().get(i);
 
-            DataSource masterDs = dataSource(
+            DataSource masterDs = migratedDataSource(
                     shard.getUsername(),
                     shard.getPassword(),
                     shard.getMaster().getUrl()
             );
-            dataSourceMap.put(i + SHARD_DELIMITER + shard.getMaster().getName(), masterDs);
+            dataSourceMap.put(i, masterDs);
         }
 
         router.setTargetDataSources(dataSourceMap);
+        router.setLenientFallback(false);
         router.afterPropertiesSet();
 
         return new LazyConnectionDataSourceProxy(router);
     }
 
-    private DataSource dataSource(
+    private DataSource migratedDataSource(
             String username,
             String password,
             String url
@@ -81,6 +92,17 @@ public final class DataSourceFactory {
         dataSource.setPassword(password);
         dataSource.setJdbcUrl(url);
 
-        return dataSource;
+        try {
+            Flyway.configure()
+                    .dataSource(dataSource)
+                    .locations(HISTORY_MIGRATION_LOCATION)
+                    .table(HISTORY_SCHEMA_HISTORY)
+                    .load()
+                    .migrate();
+            return dataSource;
+        } catch (RuntimeException exception) {
+            dataSource.close();
+            throw exception;
+        }
     }
 }
