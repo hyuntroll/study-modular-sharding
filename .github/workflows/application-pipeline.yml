@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: hyuntroll/study-modular-sharding
-  INFRA_REPOSITORY: hyuntroll/study-modular-sharding-infra
+  INFRA_REPOSITORY: hyuntroll/deploy-example
 
 jobs:
   verify:
@@ -114,7 +114,7 @@ jobs:
           client-id: ${{ vars.INFRA_APP_CLIENT_ID }}
           private-key: ${{ secrets.INFRA_APP_PRIVATE_KEY }}
           owner: hyuntroll
-          repositories: study-modular-sharding-infra
+          repositories: deploy-example
 
       - name: Checkout Infra repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

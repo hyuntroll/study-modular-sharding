@@ -219,7 +219,7 @@ Infra PR 생성에는 대상 저장소에 설치된 GitHub App과 다음 설정�
 - Repository secret: `INFRA_APP_PRIVATE_KEY`
 - Infra 파일: `versions/prod.env`
 
-현재 Infra 저장소가 없거나 접근할 수 없는 동안에는 `INFRA_UPDATE_ENABLED`를 설정하지 않아야 합니다. 애플리케이션 Workflow는 서버에 직접 SSH 접속하거나 배포하지 않습니다.
+Infra PR 대상은 `hyuntroll/deploy-example`입니다. 해당 저장소가 없거나 접근할 수 없는 동안에는 `INFRA_UPDATE_ENABLED`를 설정하지 않아야 합니다. 애플리케이션 Workflow는 서버에 직접 SSH 접속하거나 배포하지 않습니다.
 
 ## 검증
 
