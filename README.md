@@ -1,60 +1,47 @@
 # study-modular-sharding
 
-Spring Boot에서 사용자 키를 기준으로 데이터소스를 선택하는 모듈러 샤딩과, 애플리케이션 로그·메트릭을 수집하는 흐름을 직접 실습하는 프로젝트입니다.
+Spring Boot에서 단일 history DB와 사용자 키 기반 샤딩을 같은 애플리케이션 구조로 실습하는 프로젝트입니다.
 
-이 저장소는 다음 질문을 코드와 로컬 실행 환경으로 확인합니다.
+확인할 수 있는 내용은 다음과 같습니다.
 
-- 애플리케이션 DB와 샤딩 대상 DB를 어떻게 분리하는가?
-- `userId % shardCount` 결과를 실제 `DataSource` 선택으로 어떻게 연결하는가?
-- 샤딩 컨텍스트를 명시적인 템플릿과 AOP 중 어디에서 열고 닫는가?
-- Spring Boot JSON 로그를 Alloy, Loki, Grafana로 어떻게 전달하는가?
-- Actuator 메트릭을 Prometheus에서 어떻게 수집하는가?
+- application DB와 history DB 분리
+- `SINGLE`, `SHARDED` 토폴로지 선택과 운영 모드 잠금
+- `userId % shardCount` 기반 모듈러 라우팅
+- template과 AOP 방식의 샤딩 컨텍스트 관리
+- Flyway를 이용한 application DB와 각 history DB 스키마 관리
 
-> 학습용 프로젝트입니다. 기본 비밀번호, 평문 사용자 비밀번호 저장, 인증 없는 API, 로컬 파일 저장소 설정을 그대로 운영 환경에 사용하면 안 됩니다.
+> 학습용 프로젝트입니다. 기본 비밀번호, 평문 사용자 비밀번호 저장, 인증 없는 API를 그대로 운영 환경에 사용하면 안 됩니다.
 
-## 전체 구조
+## 구조
 
 ```text
-HTTP 요청
-   |
-Controller -> Application Service -> Port
-                                  |
-                    +-------------+-------------+
-                    |                           |
-             UserPersistence             HistoryPersistence
-                    |                    (template 또는 AOP)
-                    |                           |
-             application DB          ShardingScope / ThreadLocal
-                                                |
+Controller -> Application Service -> Persistence Port
+                                      |
+                       +--------------+--------------+
+                       |                             |
+               application DB                  history DB
+                                              SINGLE 또는
                                   LazyConnectionDataSourceProxy
-                                                |
-                                       DataSourceRouter
-                                                |
-                           userId % 2 -> history shard 0 또는 1
-```
-
-관측성 데이터는 두 경로로 나뉩니다.
-
-```text
-Spring Boot -> logs/app.log -> Alloy -> Loki -> Grafana
-Spring Boot -> /actuator/prometheus -> Prometheus -> Grafana
+                                               |
+                                        DataSourceRouter
+                                               |
+                              userId % shardCount -> shard
 ```
 
 ## 기술 스택
 
 - Java 21
-- Spring Boot 4.1.0, Spring Data JPA
+- Spring Boot 4.1.0
+- Spring Data JPA
 - PostgreSQL
 - Flyway
-- Logback structured logging, Grafana Alloy, Loki, Grafana
-- Spring Boot Actuator, Micrometer Prometheus Registry, Prometheus
 - Gradle Wrapper
 
 ## 빠른 시작
 
 ### 1. PostgreSQL 준비
 
-이 프로젝트의 Compose 파일에는 PostgreSQL이 포함되어 있지 않습니다. 로컬 PostgreSQL을 사용하거나 아래처럼 실습용 컨테이너와 DB 3개를 만듭니다.
+로컬 PostgreSQL을 사용하거나 실습용 컨테이너와 DB 3개를 만듭니다.
 
 ```bash
 docker run -d \
@@ -78,36 +65,13 @@ docker exec modular-sharding-postgres \
   createdb -U history_shard_1 demo_shard_2
 ```
 
-기본 설정에서 DB의 역할은 다음과 같습니다.
-
 | DB | 역할 |
 |---|---|
 | `demo_application` | 사용자 데이터 |
-| `demo_shard_1` | 단일 모드 DB 또는 샤드 0 |
-| `demo_shard_2` | 샤드 1 |
+| `demo_shard_1` | SINGLE history DB 또는 shard 0 |
+| `demo_shard_2` | shard 1 |
 
-### 2. 관측성 스택 실행
-
-```bash
-docker compose up -d
-docker compose ps
-```
-
-다음 서비스가 실행됩니다.
-
-| 서비스 | 주소 | 역할 |
-|---|---|---|
-| Alloy | <http://localhost:12345> | 파일 로그 수집 및 전달 |
-| Loki | <http://localhost:3100/ready> | 로그 저장 및 조회 |
-| Grafana | <http://localhost:3000/grafana/> | 로그·메트릭 시각화 |
-| Prometheus | <http://localhost:9090> | Actuator 메트릭 수집 |
-
-Grafana의 기본 로그인은 `admin` / `admin`입니다. 첫 로그인 후 데이터소스를 수동으로 추가합니다.
-
-- Loki URL: `http://loki:3100`
-- Prometheus URL: `http://prometheus:9090`
-
-### 3. 애플리케이션 실행
+### 2. SINGLE 모드 실행
 
 ```bash
 HISTORY_DB_MODE=SINGLE \
@@ -115,18 +79,9 @@ HISTORY_DB_EXPECTED_MODE=SINGLE \
 ./gradlew bootRun
 ```
 
-`HISTORY_DB_MODE`에는 history DB 하나를 사용하는 `SINGLE` 또는 여러 DB를 사용하는 `SHARDED`를 반드시 지정합니다. `HISTORY_DB_EXPECTED_MODE`도 별도로 지정해야 하며 두 값이 다르면 기동하지 않습니다. 샤딩 범위는 기본적으로 명시적인 `template` 방식으로 엽니다.
+`HISTORY_DB_MODE`와 `HISTORY_DB_EXPECTED_MODE`가 다르면 애플리케이션은 기동하지 않습니다.
 
-```bash
-curl -s http://localhost:8080/actuator/health
-curl -s http://localhost:8080/actuator/prometheus | head
-```
-
-정상이라면 health 응답의 `status`가 `UP`이고 Prometheus 형식의 메트릭이 출력됩니다.
-
-### 4. API로 샤딩 흐름 확인
-
-새 DB 기준으로 사용자를 만들고 history 데이터를 저장·조회합니다.
+### 3. API 확인
 
 ```bash
 curl -i -X POST \
@@ -139,17 +94,13 @@ curl -s -X POST \
   'http://localhost:8080/history?userId=1&historyId=1'
 ```
 
-마지막 요청은 다음 형태의 JSON을 반환합니다.
+조회 결과 예시:
 
 ```json
 {"action":"LOGIN","userId":1,"id":1}
 ```
 
-## 모듈러 샤딩 실습
-
-### `SINGLE`에서 `SHARDED`로 전환
-
-Flyway가 시작할 때 application DB와 모든 history shard에 필요한 테이블을 각각 생성합니다. 수동으로 shard 테이블을 만들 필요가 없습니다.
+## SHARDED 모드
 
 ```bash
 HISTORY_DB_MODE=SHARDED \
@@ -157,33 +108,52 @@ HISTORY_DB_EXPECTED_MODE=SHARDED \
 ./gradlew bootRun
 ```
 
-현재 설정은 `MODULAR`이고 shard가 2개이므로 라우팅 결과는 다음과 같습니다. 별도의 `mod` 값 대신 실제 shard 개수를 사용하여 설정 불일치를 막습니다.
+현재 설정은 `MODULAR`이며 등록된 shard 수를 나눗수로 사용합니다.
 
-| `userId` | 계산 | 선택되는 샤드 |
+| `userId` | 계산 | DB |
 |---:|---:|---|
 | 1 | `1 % 2 = 1` | `demo_shard_2` |
 | 2 | `2 % 2 = 0` | `demo_shard_1` |
 | 3 | `3 % 2 = 1` | `demo_shard_2` |
 
-`DataSourceRouter`는 트랜잭션에서 실제 커넥션이 필요한 시점에 `UserContextHolder`의 `userId`를 읽고 대상 데이터소스를 선택합니다. 샤딩 컨텍스트가 없거나 RANGE 규칙에 맞는 shard가 없으면 잘못된 DB로 보내지 않고 예외를 발생시킵니다.
+샤딩 키가 없거나 `RANGE` 규칙에 맞는 shard가 없으면 기본 DB로 우회하지 않고 예외를 발생시킵니다.
 
-### 운영 모드 잠금
-
-`expected-mode`는 설정 실수로 운영 토폴로지가 바뀌는 것을 막습니다. 실제 운영에서는 `HISTORY_DB_EXPECTED_MODE`를 배포 정책에 고정하고, 일반 애플리케이션 설정에서는 `HISTORY_DB_MODE`만 선택합니다.
+### template과 AOP
 
 ```bash
-HISTORY_DB_MODE=SINGLE \
+SHARDING_MODE=template \
+HISTORY_DB_MODE=SHARDED \
 HISTORY_DB_EXPECTED_MODE=SHARDED \
 ./gradlew bootRun
 ```
 
-위 조합은 `mode must match expected-mode: SHARDED` 오류로 기동에 실패합니다. 실제 `SINGLE ↔ SHARDED` 전환은 설정 변경이 아니라 데이터 이관, 검증, 재기동, 롤백 계획이 포함된 별도 작업으로 취급해야 합니다.
+```bash
+SHARDING_MODE=aop \
+HISTORY_DB_MODE=SHARDED \
+HISTORY_DB_EXPECTED_MODE=SHARDED \
+./gradlew bootRun
+```
 
-## Flyway 마이그레이션
+| 방식 | 특징 |
+|---|---|
+| `template` | `ShardingTemplate.execute(...)` 호출에서 범위와 키가 명확함 |
+| `aop` | `@Sharding` adapter의 첫 번째 `Long` 인자를 샤딩 키로 사용 |
 
-application JPA는 Hibernate `validate`로 스키마를 검사하고 테이블은 변경하지 않습니다. history JPA는 라우팅 키 없는 연결을 허용하지 않으므로 Hibernate DDL을 끄고, Flyway가 각 물리 history DB에 직접 마이그레이션을 실행합니다.
+## 모드 변경 주의
 
-| 대상 | 마이그레이션 | 이력 테이블 |
+`SINGLE`과 `SHARDED`는 실행 가능한 토폴로지를 선택할 뿐 데이터를 자동으로 옮기지 않습니다.
+
+- `SINGLE -> SHARDED`: 기존 데이터는 원래 DB에 남아 있어 다른 shard로 라우팅되는 사용자의 데이터가 보이지 않을 수 있습니다.
+- `SHARDED -> SINGLE`: 선택된 단일 DB 외의 shard 데이터는 조회되지 않습니다.
+- 실제 전환은 쓰기 중지, 데이터 이관, identity sequence 조정, 건수 검증, 재기동과 롤백 계획을 포함한 별도 작업으로 수행해야 합니다.
+
+운영에서는 `HISTORY_DB_EXPECTED_MODE`를 배포 정책에 고정합니다.
+
+## Flyway
+
+애플리케이션 시작 시 다음 마이그레이션을 실행합니다.
+
+| 대상 | 위치 | 이력 테이블 |
 |---|---|---|
 | application DB | `db/migration/application` | `flyway_schema_history` |
 | SINGLE 또는 각 history shard | `db/migration/history` | `flyway_history_schema_history` |
@@ -195,89 +165,21 @@ src/main/resources/db/migration/application/V2__change_users.sql
 src/main/resources/db/migration/history/V2__change_history.sql
 ```
 
-기존에 Hibernate `ddl-auto`로 테이블을 만든 DB에는 Flyway 이력 테이블이 없습니다. 이 실습 프로젝트에서는 컨테이너를 다시 만들어 빈 DB에서 시작합니다. 실제 운영 DB를 도입할 때는 현재 스키마를 검증한 뒤 별도의 baseline 작업을 수행해야 하며, 마이그레이션 파일을 임의로 다시 실행하면 안 됩니다.
-
-### template과 AOP 비교
-
-기본 `template` 방식은 `ShardingTemplate.execute(...)` 호출이 샤딩 범위를 코드에 드러냅니다.
-
-```bash
-SHARDING_MODE=template ./gradlew bootRun
-```
-
-`aop` 방식은 `@Sharding`이 붙은 persistence adapter의 첫 번째 `Long` 인자를 샤딩 키로 사용합니다.
-
-```bash
-SHARDING_MODE=aop ./gradlew bootRun
-```
-
-| 방식 | 장점 | 주의점 |
-|---|---|---|
-| `template` | 샤딩 범위와 키가 호출부에 명확함 | 각 작업을 템플릿으로 감싸야 함 |
-| `aop` | persistence 코드의 반복이 줄어듦 | 포인트컷과 첫 번째 인자 규칙을 알아야 함 |
-
-## 로그 확인
-
-Spring Boot는 한 줄짜리 JSON 로그를 `logs/app.log`에 기록합니다. 파일은 날짜와 크기를 기준으로 `logs/archive/`에 롤링되며 30일, 총 3GB까지 보관합니다.
-
-```bash
-tail -f logs/app.log | jq -c .
-```
-
-Alloy는 이 파일을 읽어 Loki로 전송합니다. Grafana Explore에서 다음 LogQL로 조회합니다.
-
-```logql
-{job="modular-sharding"}
-```
-
-구조화된 샤딩 필드를 필터링하려면 JSON 파서를 연결합니다.
-
-```logql
-{job="modular-sharding"} | json | database_mode="sharded"
-```
-
-사용자 생성 로그에는 요청 비밀번호를 기록하지 않습니다. 데이터소스 로그에는 `database_mode`, `shard_index`, `shard_name`만 남깁니다.
-
-## 메트릭 확인
-
-Prometheus Targets 화면에서 `modular-sharding` 작업이 `UP`인지 확인합니다.
-
-<http://localhost:9090/targets>
-
-Prometheus 또는 Grafana에서 다음 PromQL을 실행하면 애플리케이션 수집 상태를 볼 수 있습니다.
-
-```promql
-up{job="modular-sharding"}
-```
-
-모든 애플리케이션 메트릭에는 `application="modular-sharding"` 공통 태그가 붙습니다.
+기존 Hibernate DDL로 만든 DB를 도입할 때는 현재 스키마를 검증한 뒤 별도의 Flyway baseline 절차가 필요합니다.
 
 ## 주요 설정
 
 | 설정 | 기본값 | 설명 |
 |---|---|---|
-| `spring.datasource.*` | `demo_application` | 사용자용 기본 JPA 데이터소스 |
+| `spring.datasource.*` | `demo_application` | 사용자용 DB |
 | `datasource.history.mode` | 필수 | `SINGLE` 또는 `SHARDED` |
 | `datasource.history.expected-mode` | 필수 | 배포 환경에서 허용한 모드 |
-| `datasource.history.single` | `demo_shard_1` | 단일 모드 history 데이터소스 |
+| `datasource.history.single` | `demo_shard_1` | SINGLE history DB |
 | `datasource.history.shard.strategy` | `MODULAR` | `MODULAR` 또는 `RANGE` |
-| `datasource.history.shards` | 2개 | 샤드 번호 순서대로 등록하며 MODULAR의 나눗수가 되는 목록 |
-| `sharding.mode` | `template` | `template` 또는 `aop` adapter 선택 |
-| `logging.file.path` | `./logs` | 애플리케이션 로그 경로 |
+| `datasource.history.shards` | 2개 | 샤드 번호 순서로 등록할 DB 목록 |
+| `sharding.mode` | `template` | `template` 또는 `aop` |
 
-애플리케이션 DB와 `SINGLE` history DB는 환경 변수로 바꿀 수 있습니다.
-
-```bash
-HISTORY_DB_MODE=SINGLE \
-HISTORY_DB_EXPECTED_MODE=SINGLE \
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/demo_application \
-SPRING_DATASOURCE_USERNAME=history_shard_1 \
-SPRING_DATASOURCE_PASSWORD=demo1234 \
-HISTORY_DB_URL=jdbc:postgresql://localhost:5432/demo_shard_1 \
-HISTORY_DB_USERNAME=history_shard_1 \
-HISTORY_DB_PASSWORD=demo1234 \
-./gradlew bootRun
-```
+각 DB 연결 정보는 `SPRING_DATASOURCE_*`, `HISTORY_DB_*`, `HISTORY_SHARD_0_*`, `HISTORY_SHARD_1_*` 환경 변수로 변경할 수 있습니다.
 
 ## 검증
 
@@ -287,65 +189,15 @@ PostgreSQL을 실행한 상태에서 테스트합니다.
 HISTORY_DB_MODE=SINGLE \
 HISTORY_DB_EXPECTED_MODE=SINGLE \
 ./gradlew test --no-daemon
-docker compose config --quiet
 ```
 
-Prometheus 설정만 검사하려면 다음 명령을 사용합니다.
-
-```bash
-docker run --rm \
-  -v "$PWD/data/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
-  --entrypoint promtool \
-  prom/prometheus:latest \
-  check config /etc/prometheus/prometheus.yml
-```
-
-## 트러블슈팅
-
-### 애플리케이션이 DB 연결 오류로 시작하지 않음
-
-기본 설정은 PostgreSQL `localhost:5432`와 세 DB가 이미 존재한다고 가정합니다. 5432 포트 충돌, 컨테이너 상태, DB 이름을 확인합니다.
-
-```bash
-docker ps
-docker exec modular-sharding-postgres \
-  psql -U history_shard_1 -d postgres -c '\l'
-```
-
-### Prometheus Target이 `DOWN`임
-
-애플리케이션이 8080 포트에서 실행 중인지 먼저 확인합니다.
-
-```bash
-curl -f http://localhost:8080/actuator/prometheus
-```
-
-현재 Prometheus 설정의 `host.docker.internal`은 Docker Desktop 기준입니다. Linux에서는 컨테이너가 접근할 수 있는 호스트 주소로 `data/prometheus/prometheus.yml`의 target을 바꿔야 합니다.
-
-### Grafana에서 로그가 보이지 않음
-
-애플리케이션 로그 파일과 각 서비스 상태를 확인합니다.
-
-```bash
-test -s logs/app.log
-docker compose ps
-curl -f http://localhost:3100/ready
-```
-
-Loki 기동 직후에는 `/ready`가 잠시 503을 반환할 수 있습니다.
-
-## 디렉터리 안내
+## 디렉터리
 
 ```text
-src/main/java/.../global/datasource/   샤딩 설정, 컨텍스트, 라우터, 팩토리
-src/main/java/.../adapter/             REST API와 JPA adapter
-src/main/resources/application.yaml   DB, 샤딩, Flyway, Actuator, 로그 설정
-src/main/resources/db/migration/      application/history Flyway SQL
-src/main/resources/logback-spring.xml JSON 파일 로그와 롤링 정책
-data/alloy/config.alloy                로그 파일 수집 설정
-data/loki/loki-config.yaml             로컬 Loki 저장 설정
-data/prometheus/prometheus.yml         Actuator scrape 설정
-compose.yml                            Alloy, Loki, Grafana, Prometheus
+src/main/java/.../global/datasource/  샤딩 설정, 컨텍스트, 라우터, 팩토리
+src/main/java/.../adapter/            REST API와 JPA adapter
+src/main/resources/application.yaml  DB, 샤딩, Flyway 설정
+src/main/resources/db/migration/     application/history Flyway SQL
 ```
 
 ## 참고 자료

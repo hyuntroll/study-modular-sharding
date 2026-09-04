@@ -24,23 +24,6 @@ spring:
   flyway:
     locations: classpath:db/migration/application
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include:
-          - health
-          - prometheus
-
-  metrics:
-    tags:
-      application: modular-sharding
-
-  otlp:
-    metrics:
-      export:
-        enabled: false
-
 datasource:
   history:
     mode: ${HISTORY_DB_MODE}
@@ -68,11 +51,3 @@ datasource:
 
 sharding:
   mode: template # or aop
-
-logging:
-  file:
-    path: ./logs
-
-  structured:
-    format:
-      file: logstash
