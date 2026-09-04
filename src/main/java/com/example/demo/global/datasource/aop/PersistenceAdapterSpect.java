@@ -9,11 +9,14 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 @Aspect
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @ConditionalOnProperty(
         prefix = "sharding",
         name = "mode",
@@ -28,12 +31,13 @@ public class PersistenceAdapterSpect {
             "")
     private void persistenceAdapter() {}
 
-    @Around("persistenceAdapter() && @within(sharding) && args(shardKey,..)")
-    public Object route(
-            ProceedingJoinPoint joinPoint,
-            Sharding sharding,
-            Long shardKey
-    ) throws Throwable {
+    @Around("persistenceAdapter() && @within(com.example.demo.global.datasource.aop.Sharding)")
+    public Object route(ProceedingJoinPoint joinPoint) throws Throwable {
+        Sharding sharding = joinPoint.getTarget().getClass().getAnnotation(Sharding.class);
+        Object[] arguments = joinPoint.getArgs();
+        if (sharding == null || arguments.length == 0 || !(arguments[0] instanceof Long shardKey)) {
+            throw new IllegalStateException("@Sharding methods require a Long shard key as the first argument");
+        }
         log.info(String.valueOf(shardKey));
 
         try (var ignored = ShardingScope.open(sharding.target(), shardKey)) {

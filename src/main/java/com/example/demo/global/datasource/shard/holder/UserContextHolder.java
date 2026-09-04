@@ -3,7 +3,6 @@ package com.example.demo.global.datasource.shard.holder;
 
 import com.example.demo.global.datasource.shard.enums.ShardingTarget;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -25,6 +24,9 @@ public final class UserContextHolder {
         if (!context.isEmpty()) {
             context.pop();
         }
+        if (context.isEmpty()) {
+            USER_CONTEXT.remove();
+        }
     }
 
 
@@ -35,21 +37,14 @@ public final class UserContextHolder {
                 : stack.peek();
     }
 
-    public static Deque<Sharding> getUserContext() {
+    private static Deque<Sharding> getUserContext() {
         return USER_CONTEXT.get();
     }
 
     @Getter
-    @Setter
-    public static class Context {
-        private Sharding sharding;
-    }
-
-    @Getter
-    @Setter
     public static class Sharding {
-        private ShardingTarget target;
-        private long shardKey;
+        private final ShardingTarget target;
+        private final long shardKey;
 
         Sharding(ShardingTarget target, long shardKey) {
             this.target = target;
