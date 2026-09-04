@@ -1,9 +1,9 @@
 spring:
   application:
-    name: demo
+    name: modular-sharding-api
 
   profiles:
-    default: default
+    default: local
 
   jpa:
     open-in-view: false
@@ -16,38 +16,30 @@ spring:
         format_sql: false
         default_batch_fetch_size: 100
 
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/demo_application}
-    username: ${SPRING_DATASOURCE_USERNAME:history_shard_1}
-    password: ${SPRING_DATASOURCE_PASSWORD:demo1234}
-
   flyway:
     locations: classpath:db/migration/application
 
-datasource:
-  history:
-    mode: ${HISTORY_DB_MODE}
-    expected-mode: ${HISTORY_DB_EXPECTED_MODE}
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+        add-additional-paths: true
 
-    shard:
-      strategy: MODULAR
-
-    single:
-        username: ${HISTORY_DB_USERNAME:history_shard_1}
-        url: ${HISTORY_DB_URL:jdbc:postgresql://localhost:5432/demo_shard_1}
-        password: ${HISTORY_DB_PASSWORD:demo1234}
-
-    shards:
-      - username: ${HISTORY_SHARD_0_USERNAME:history_shard_1}
-        password: ${HISTORY_SHARD_0_PASSWORD:demo1234}
-        master:
-          name: master-history-1
-          url: ${HISTORY_SHARD_0_URL:jdbc:postgresql://localhost:5432/demo_shard_1}
-      - username: ${HISTORY_SHARD_1_USERNAME:history_shard_1}
-        password: ${HISTORY_SHARD_1_PASSWORD:demo1234}
-        master:
-          name: master-history-2
-          url: ${HISTORY_SHARD_1_URL:jdbc:postgresql://localhost:5432/demo_shard_2}
-
-sharding:
-  mode: template # or aop
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      add:
+        service: ${spring.application.name}
+        environment: ${APP_ENV:local}
+        revision: ${APP_REVISION:local}
+      stacktrace:
+        max-length: 8192

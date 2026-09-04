@@ -1,0 +1,25 @@
+name: study-modular-sharding-ci
+
+services:
+  postgres:
+    image: postgres:16-alpine
+
+    environment:
+      POSTGRES_USER: history_shard_1
+      POSTGRES_PASSWORD: demo1234
+      POSTGRES_DB: demo_application
+
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+    volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U history_shard_1 -d demo_application
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 3s

@@ -1,0 +1,202 @@
+name: Application Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: hyuntroll/study-modular-sharding
+  INFRA_REPOSITORY: hyuntroll/study-modular-sharding-infra
+
+jobs:
+  verify:
+    name: Test and Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Java
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+
+      - name: Start test databases
+        run: docker compose -f compose.ci.yaml up -d --wait
+
+      - name: Run tests
+        env:
+          SPRING_PROFILES_ACTIVE: local
+          HISTORY_DB_MODE: SHARDED
+          HISTORY_DB_EXPECTED_MODE: SHARDED
+          SHARDING_MODE: template
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/demo_application
+          SPRING_DATASOURCE_USERNAME: history_shard_1
+          SPRING_DATASOURCE_PASSWORD: demo1234
+          HISTORY_SHARD_0_URL: jdbc:postgresql://localhost:5432/demo_shard_1
+          HISTORY_SHARD_0_USERNAME: history_shard_1
+          HISTORY_SHARD_0_PASSWORD: demo1234
+          HISTORY_SHARD_1_URL: jdbc:postgresql://localhost:5432/demo_shard_2
+          HISTORY_SHARD_1_USERNAME: history_shard_1
+          HISTORY_SHARD_1_PASSWORD: demo1234
+        run: ./gradlew test --no-daemon
+
+      - name: Verify Docker image build
+        run: docker build -t study-modular-sharding:test .
+
+      - name: Stop test databases
+        if: always()
+        run: docker compose -f compose.ci.yaml down -v
+
+  publish:
+    name: Publish Image
+    if: github.event_name == 'push'
+    needs:
+      - verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+
+  update-infra:
+    name: Open Infra Pull Request
+    if: github.event_name == 'push' && vars.INFRA_UPDATE_ENABLED == 'true'
+    needs:
+      - publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ vars.INFRA_APP_CLIENT_ID }}
+          private-key: ${{ secrets.INFRA_APP_PRIVATE_KEY }}
+          owner: hyuntroll
+          repositories: study-modular-sharding-infra
+
+      - name: Checkout Infra repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ env.INFRA_REPOSITORY }}
+          token: ${{ steps.app-token.outputs.token }}
+          path: infra
+
+      - name: Update application image
+        working-directory: infra
+        env:
+          APPLICATION_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.publish.outputs.digest }}
+          APPLICATION_REVISION: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("versions/prod.env")
+          lines = path.read_text().splitlines()
+          updates = {
+              "APPLICATION_IMAGE": os.environ["APPLICATION_IMAGE"],
+              "APPLICATION_REVISION": os.environ["APPLICATION_REVISION"],
+          }
+          result = []
+          found = set()
+
+          for line in lines:
+              key = line.split("=", 1)[0] if "=" in line else None
+              if key in updates:
+                  result.append(f"{key}={updates[key]}")
+                  found.add(key)
+              else:
+                  result.append(line)
+
+          for key, value in updates.items():
+              if key not in found:
+                  result.append(f"{key}={value}")
+
+          path.write_text("\n".join(result) + "\n")
+          PY
+
+      - name: Commit and push branch
+        id: commit
+        working-directory: infra
+        run: |
+          SHORT_SHA="${GITHUB_SHA::12}"
+          BRANCH="deploy/application-${SHORT_SHA}"
+
+          git config user.name "study-modular-sharding-deployer[bot]"
+          git config user.email "study-modular-sharding-deployer[bot]@users.noreply.github.com"
+          git checkout -B "${BRANCH}"
+          git add versions/prod.env
+
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          git commit -m "deploy: update application to ${SHORT_SHA}"
+          git push --force-with-lease origin "${BRANCH}"
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+          echo "branch=${BRANCH}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create Pull Request
+        if: steps.commit.outputs.changed == 'true'
+        working-directory: infra
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
+        run: |
+          EXISTING_PR="$(gh pr list --repo "${INFRA_REPOSITORY}" --head "${BRANCH}" --json number --jq '.[0].number // empty')"
+
+          if [ -z "${EXISTING_PR}" ]; then
+            gh pr create \
+              --repo "${INFRA_REPOSITORY}" \
+              --base main \
+              --head "${BRANCH}" \
+              --title "deploy: application ${GITHUB_SHA::12}" \
+              --body "Application commit: ${GITHUB_SHA}
+
+          Image tag: sha-${GITHUB_SHA}
+
+          The production image is pinned by digest in versions/prod.env."
+          fi

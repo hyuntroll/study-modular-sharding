@@ -1,0 +1,35 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+
+datasource:
+  history:
+    mode: ${HISTORY_DB_MODE}
+    expected-mode: ${HISTORY_DB_EXPECTED_MODE}
+    shard:
+      strategy: MODULAR
+    single:
+      username: ${HISTORY_DB_USERNAME:}
+      url: ${HISTORY_DB_URL:}
+      password: ${HISTORY_DB_PASSWORD:}
+    shards:
+      - username: ${HISTORY_SHARD_0_USERNAME:}
+        password: ${HISTORY_SHARD_0_PASSWORD:}
+        master:
+          name: master-history-1
+          url: ${HISTORY_SHARD_0_URL:}
+      - username: ${HISTORY_SHARD_1_USERNAME:}
+        password: ${HISTORY_SHARD_1_PASSWORD:}
+        master:
+          name: master-history-2
+          url: ${HISTORY_SHARD_1_URL:}
+
+sharding:
+  mode: ${SHARDING_MODE:template}
